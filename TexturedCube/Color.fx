@@ -31,6 +31,7 @@ cbuffer perObj {
 	Material gMaterial;
 	DirectionalLight dLight;
 	float4 gEyePosW;
+	float4x4 gTexTran;
 };
 
 VsOut VS(VsIn vin) {
@@ -50,7 +51,8 @@ VsOut VS(VsIn vin) {
 }
 
 float4 PS(VsOut vout) : SV_TARGET{
-	float4 txColor = gDiffuseMap.Sample(spl, vout.tex);
+	float2 texcor = (float2)mul(float4(vout.tex, 0.0f, 1.0f), gTexTran);
+	float4 txColor = gDiffuseMap.Sample(spl, texcor);
 
 	float4 finalColor = 2.0f * txColor * (vout.ambient + vout.diffuse) + vout.specular;
 

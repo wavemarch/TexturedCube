@@ -45,6 +45,9 @@ private:
 	ID3DX11EffectVariable *fxDLight;
 	ID3DX11EffectVectorVariable *fxEyePosW;
 	ID3DX11EffectShaderResourceVariable *fxDiffuseMap;
+	ID3DX11EffectMatrixVariable *fxTexTran;
+
+	float mTexTranAngle = 0.0f;
 
 	ID3D11ShaderResourceView **sRV;
 	UINT mCurTex;
@@ -65,7 +68,7 @@ private:
 };
 
 TexturedCube::TexturedCube(HINSTANCE hInstance) : D3DApp(hInstance), mVertexBuffer(NULL), mIndexBuffer(NULL), mFx(NULL), fxWorld(NULL), fxWorldViewProj(NULL), fxMaterial(NULL),
-fxDLight(NULL),fxEyePosW(NULL), fxDiffuseMap(NULL) {
+fxDLight(NULL),fxEyePosW(NULL), fxDiffuseMap(NULL), fxTexTran(NULL) {
 	XMMATRIX I = XMMatrixIdentity();
 	XMStoreFloat4x4(&mWorld, I);
 	XMStoreFloat4x4(&mView, I);
@@ -94,6 +97,8 @@ fxDLight(NULL),fxEyePosW(NULL), fxDiffuseMap(NULL) {
 
 	XMMATRIX proj = XMMatrixPerspectiveFovLH(0.2f*XM_PI, AspectRatio(), 1.0f, 2000.0f);
 	XMStoreFloat4x4(&mProj, proj);
+
+	this->mTexTranAngle = 0.0f;
 }
 
 TexturedCube::~TexturedCube() {
@@ -322,6 +327,7 @@ void TexturedCube::BuildEffect() {
 	fxDLight = mFx->GetVariableByName("dLight");
 	fxEyePosW = mFx->GetVariableByName("gEyePosW")->AsVector();
 	fxDiffuseMap = mFx->GetVariableByName("gDiffuseMap")->AsShaderResource();
+	fxTexTran = mFx->GetVariableByName("gTexTran")->AsMatrix();
 }
 
 void TexturedCube::LoadTexture() {
@@ -371,6 +377,7 @@ void TexturedCube::UpdateScene(float dt) {
 		++mCurTex;
 		mCurTex %= mImgCnt;
 		mTimePerFrame = 0.0f;
+		mTexTranAngle += 0.02 * XM_PI;
 	}
 }
 
@@ -397,6 +404,13 @@ void TexturedCube::DrawScene(){
 	fxDLight->SetRawValue(&mDLight, 0, sizeof(mDLight));
 	fxMaterial->SetRawValue(&mMaterial, 0, sizeof(mMaterial));
 	fxDiffuseMap->SetResource(sRV[mCurTex]);
+
+	XMMATRIX A = XMMatrixTranslation(-0.5f, -0.5f, 0);
+	XMVECTOR axis = XMVectorSet(0, 0, -1.0f, 0);
+	XMMATRIX B = XMMatrixRotationAxis(axis, mTexTranAngle);
+	XMMATRIX C = XMMatrixTranslation(0.5f, 0.5f, 0);
+	XMMATRIX texTran = A*B*C;
+	fxTexTran->SetMatrix((float*)&texTran);
 
 	ID3DX11EffectTechnique *tech = mFx->GetTechniqueByName("T0");
 	ID3DX11EffectPass *pass = tech->GetPassByName("P0");
